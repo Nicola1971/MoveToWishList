@@ -6,10 +6,9 @@
  *
  * @category    snippet
  * @version     1.0.0
- * @author    Nicola Lambathakis http://www.tattoocms.it/
- * @internal    @properties
- * @internal  @modx_category UserWishList
- * @lastupdate 10-12-2024 19:15
+ * @author      Nicola Lambathakis http://www.tattoocms.it/
+ * @internal    @modx_category UserWishList
+ * @lastupdate  17-12-2024 16:45
  * @internal    @installset base
  */
 
@@ -17,17 +16,16 @@ if (!defined('MODX_BASE_PATH')) {
     die('What are you doing? Get out of here!');
 }
 
-// Parameters per le classi
+// Parameters per le classi e testi
 $btnClass = isset($btnClass) ? $btnClass : '';
+$btnText = isset($btnText) ? $btnText : '';
 $selectClass = isset($selectClass) ? $selectClass : '';
 $wrapperClass = isset($wrapperClass) ? $wrapperClass : '';
 
-$buttonTpl = '@CODE:
-<button type="button" class="wishlist-move-btn [+btn_class+]" onclick="moveToWishlist([+docid+], \'[+current_list+]\', \'[+destination_list+]\')">[+button_text+]</button>';
-
-$optionTpl = '@CODE:<option value="[+destination_list+]">[+list_name+]</option>';
-
-$selectTpl = '@CODE:<div class="wishlist-move-wrapper [+wrapper_class+]">
+// Template hardcoded
+const BUTTON_TPL = '@CODE:<button type="button" class="wishlist-move-btn [+btn_class+]" onclick="moveToWishlist([+docid+], \'[+current_list+]\', \'[+destination_list+]\')">[+button_text+]</button>';
+const OPTION_TPL = '@CODE:<option value="[+destination_list+]">[+list_name+]</option>';
+const SELECT_TPL = '@CODE:<div class="wishlist-move-wrapper [+wrapper_class+]">
     <select class="wishlist-move-select [+select_class+]" onchange="if(this.value) moveToWishlist([+docid+], \'[+current_list+]\', this.value)">
         <option value="">[+select_label+]</option>
         [+options+]
@@ -44,7 +42,7 @@ if (empty($current)) {
 // Optional parameters with defaults
 $tpl = isset($tpl) ? $tpl : $buttonTpl;
 $tplWrapper = isset($tplWrapper) ? $tplWrapper : $selectTpl;
-$docid = isset($item_id) ? (int)$item_id : 0; // Usiamo item_id invece di docid
+$docid = isset($item_id) ? (int)$item_id : 0;
 if ($docid === 0) {
     $modx->logEvent(1, 1, 'Item ID not specified (parameter: item_id)', 'MoveToWishList');
     return 'Item ID not specified';
@@ -62,6 +60,7 @@ $toastSuccessBg = isset($toastSuccessBg) ? $toastSuccessBg : 'linear-gradient(to
 $toastSuccessGrav = isset($toastSuccessGrav) ? $toastSuccessGrav : 'top';
 $toastSuccessPos = isset($toastSuccessPos) ? $toastSuccessPos : 'center';
 $toastSuccessDur = isset($toastSuccessDur) ? $toastSuccessDur : '3000';
+
 // Get destination lists
 $moveToLists = isset($moveToLists) ? $moveToLists : '';
 $moveToLists = array_filter(array_map('trim', explode(',', $moveToLists)));
@@ -70,6 +69,8 @@ if (empty($moveToLists)) {
     $modx->logEvent(1, 1, 'No destination wishlist specified (parameter: moveToLists)', 'MoveToWishList');
     return 'No destination wishlist specified (parameter: moveToLists)';
 }
+
+// Get friendly names from TV captions
 $friendlyNames = [];
 foreach ($moveToLists as $listName) {
     $tvQuery = $modx->db->select('caption', $modx->getFullTableName('site_tmplvars'), "name = '" . $modx->db->escape($listName) . "'");
@@ -80,6 +81,7 @@ foreach ($moveToLists as $listName) {
         $friendlyNames[$listName] = $listName;
     }
 }
+
 // Include language file
 $_MTWlang = [];
 $langPath = MODX_BASE_PATH . 'assets/snippets/MoveToWishList/lang/';
@@ -126,9 +128,9 @@ document.addEventListener("DOMContentLoaded", function() {
                         close: ' . $toastClose . ',
                         gravity: "' . $toastSuccessGrav . '",
                         position: "' . $toastSuccessPos . '",
-						style: {
-                        	background: "' . $toastSuccessBg . '"
-						}
+                        style: {
+                            background: "' . $toastSuccessBg . '"
+                        }
                     }).showToast();
                     
                     // Aggiorniamo entrambi i contatori
@@ -160,8 +162,8 @@ document.addEventListener("DOMContentLoaded", function() {
                         gravity: "' . $toastErrorGrav . '",
                         position: "' . $toastErrorPos . '",
                         style: {
-                    		background: "' . $toastErrorBg . '"
-						}
+                            background: "' . $toastErrorBg . '"
+                        }
                     }).showToast();
                 }
             },
@@ -173,9 +175,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     close: ' . $toastClose . ',
                     gravity: "' . $toastErrorGrav . '",
                     position: "' . $toastErrorPos . '",
-					style: {
-                    	background: "' . $toastErrorBg . '"
-					}
+                    style: {
+                        background: "' . $toastErrorBg . '"
+                    }
                 }).showToast();
             }
         });
@@ -183,22 +185,36 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 ');
+
 // Prepare output based on number of destination lists
 $output = '';
-// Nel caso di singola destinazione
 if (count($moveToLists) === 1) {
     $destList = $moveToLists[0];
+    
+    // Prepara il testo del bottone
+    if (!empty($btnText)) {
+        // Sostituisci il placeholder con il nome amichevole della lista
+        $buttonText = str_replace('[+destination_name+]', $friendlyNames[$destList], $btnText);
+        // Nel caso il placeholder non sia presente, aggiungiamo il nome alla fine
+        if ($buttonText === $btnText) {
+            $buttonText .= ' ' . $friendlyNames[$destList];
+        }
+    } else {
+        // Usa il testo dal file di lingua
+        $buttonText = sprintf($_MTWlang['move_to_list'], $friendlyNames[$destList]);
+    }
+
     $fields = array(
         'docid' => $docid,
         'current_list' => $current,
         'destination_list' => $destList,
-        'button_text' => sprintf($_MTWlang['move_to_list'], $friendlyNames[$destList]),
-		'btn_class' => $btnClass
+        'button_text' => $buttonText,
+        'btn_class' => $btnClass
     );
     
-    $output = $modx->parseChunk($tpl, $fields, '[+', '+]');
+    $output = $modx->parseChunk(BUTTON_TPL, $fields, '[+', '+]');
 } else {
-    // Per il select con multiple destinazioni
+    // Multiple destinations - use select template
     $options = '';
     foreach ($moveToLists as $list) {
         $optionFields = array(
@@ -207,18 +223,19 @@ if (count($moveToLists) === 1) {
             'destination_list' => $list,
             'list_name' => $friendlyNames[$list]
         );
-        $options .= $modx->parseChunk($optionTpl, $optionFields, '[+', '+]');
+        $options .= $modx->parseChunk(OPTION_TPL, $optionFields, '[+', '+]');
     }
     
     $fields = array(
-    	'docid' => $docid,
-    	'current_list' => $current,
-    	'options' => $options,
-    	'select_label' => $_MTWlang['select_destination'],
-    	'select_class' => $selectClass,
-    	'wrapper_class' => $wrapperClass
-	);
+        'docid' => $docid,
+        'current_list' => $current,
+        'options' => $options,
+        'select_label' => $_MTWlang['select_destination'],
+        'select_class' => $selectClass,
+        'wrapper_class' => $wrapperClass
+    );
     
-    $output = $modx->parseChunk($tplWrapper, $fields, '[+', '+]');
+    $output = $modx->parseChunk(SELECT_TPL, $fields, '[+', '+]');
 }
+
 return $output;

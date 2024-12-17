@@ -1,7 +1,6 @@
 <?php
 define('MODX_API_MODE', true);
 include_once("../../../../../index.php");
-require_once "../functions.php";
 
 //Language
 // Sanitizzazione input e cast a string
@@ -67,11 +66,6 @@ if (isset($_POST['move_wishlist'])) {
         $tvData = $evo->db->getRow($tvQuery);
         $friendlyName = !empty($tvData['caption']) ? $tvData['caption'] : $toList;
         $tvValues = \UserManager::getValues(['id' => $userId]);
-        
-        // Log dei valori TV prima dell'operazione
-        $modx->logEvent(1, 1, 'Current TV values:
-- Source TV (' . $fromList . '): ' . (isset($tvValues[$fromList]) ? $tvValues[$fromList] : 'empty') . '
-- Dest TV (' . $toList . '): ' . (isset($tvValues[$toList]) ? $tvValues[$toList] : 'empty'), 'MoveToWishList Move Handler');
         
         // Get source list items
         $sourceWishList = isset($tvValues[$fromList]) ? $tvValues[$fromList] : '';
